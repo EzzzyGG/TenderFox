@@ -1,0 +1,44 @@
+services:
+  api:
+    build: .
+    container_name: tenderfox-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: tenderfox-postgres
+    environment:
+      POSTGRES_USER: tenderfox
+      POSTGRES_PASSWORD: tenderfox
+      POSTGRES_DB: tenderfox
+    ports:
+      - "5432:5432"
+    volumes:
+      - tenderfox_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenderfox -d tenderfox"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: tenderfox-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  tenderfox_pgdata:
