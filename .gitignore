@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual env
+.venv/
+venv/
+ENV/
+
+# Poetry
+poetry.lock
+
+# Env files
+.env
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Mypy
+.mypy_cache/
