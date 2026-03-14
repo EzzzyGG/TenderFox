@@ -21,7 +21,28 @@ docker compose run --rm api alembic upgrade head
 ### 4) Проверка
 - Health: `GET http://localhost:8000/health`
 
-### 5) Проверка подписок (MVP)
+---
+
+## Реальный поиск тендеров (MVP)
+
+> Источник: GosPlan API v2 test (обёртка над ЕИС/zakupki). Настраивается переменной `GOSPLAN_BASE_URL`.
+
+### Поиск
+```bash
+curl 'http://localhost:8000/search?keyword=мебель&region=77&limit=5'
+```
+
+### Карточка
+1) возьми `source_id` из результатов поиска
+2) запрос:
+```bash
+curl 'http://localhost:8000/tenders/<source_id>'
+```
+
+---
+
+## Подписки (пока MVP без бота)
+
 Создать подписку:
 ```bash
 curl -X POST http://localhost:8000/subscriptions \
@@ -45,12 +66,6 @@ curl 'http://localhost:8000/subscriptions?chat_id=demo'
 poetry install
 ```
 
-### Миграции (локально)
-```bash
-export DATABASE_URL='postgresql+psycopg://tenderfox:tenderfox@localhost:5432/tenderfox'
-alembic upgrade head
-```
-
 ### Запуск API
 ```bash
 poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -60,3 +75,7 @@ poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 - `PLAN.md` — полный план работ
 - `CHECKLIST.md` — чеклист соответствия задумке
 - `TODO.md` — дорожная карта
+
+## Источники
+- Swagger GosPlan (44-ФЗ): <https://swagger.gosplan.info/?urls.primaryName=44-%D0%A4%D0%97>
+- Wiki GosPlan: <https://wiki.gosplan.info>
