@@ -12,5 +12,8 @@ class Settings(BaseSettings):
     # External sources
     gosplan_base_url: str = "https://v2test.gosplan.info/fz44"
 
+    # Telegram
+    telegram_bot_token: str = ""
+
 
 settings = Settings()
