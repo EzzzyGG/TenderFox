@@ -36,8 +36,6 @@ curl 'http://localhost:8000/search?keyword=мебель&region=77&limit=5'
 ```
 
 Карточка:
-1) возьми `source_id` из результатов поиска
-2) запрос:
 ```bash
 curl 'http://localhost:8000/tenders/<source_id>'
 ```
@@ -62,6 +60,7 @@ curl 'http://localhost:8000/subscriptions?chat_id=demo'
 
 ## Документы
 
+- `DEPLOY_RU_YC.md` — деплой в РФ (Yandex Cloud) для MVP
 - `WORK_REPORT.md` — подробный отчёт по проделанной работе
 - `PLAN.md` — полный план работ
 - `CHECKLIST.md` — чеклист соответствия задумке
