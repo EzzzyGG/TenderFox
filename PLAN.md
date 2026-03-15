@@ -17,11 +17,14 @@
 
 ---
 
-## 0) Текущее состояние (что уже в репо)
+## 0) Текущее состояние
 
-- Документация: `CHECKLIST.md`, `TODO.md`
-- Каркас проекта: FastAPI + Poetry + тест `/health`
-- Сейчас **нет**: docker-compose, БД/миграций, источника zakupki, Telegram-бота, планировщика, сайта.
+- Запуск: Docker Compose (API + Postgres + Redis)
+- Миграции: Alembic (явной командой)
+- Подписки: `POST/GET /subscriptions` пишут/читают из Postgres
+- Тендеры:
+  - `GET /search` — реальный поиск (через GosPlan v2 test)
+  - `GET /tenders/{id}` — карточка (кеш в Postgres)
 
 ---
 
@@ -45,201 +48,47 @@
 
 ## 2) Этапы разработки (пакетами PR)
 
-### PR-A (сделано)
-- Док-пакет: чеклист + TODO
-- Каркас FastAPI + Poetry + тест
+### PR-A: Документация и управление работой (сделано)
+- `CHECKLIST.md`, `TODO.md`, `PLAN.md`
 
-### PR-B: Docker + окружение (1 день)
-**Цель:** поднять api+postgres+redis.
+### PR-B: Каркас проекта (сделано)
+- FastAPI + Poetry + Python 3.11
 
-Deliverables:
-- `Dockerfile`
-- `docker-compose.yml` (api, postgres, redis)
-- `README.md` с командами запуска
-- healthcheck’и
+### PR-C: Docker bootstrap (сделано)
+- Dockerfile + docker-compose (api + postgres + redis)
 
-Acceptance:
-- `docker compose up --build` → `GET /health` отдаёт `{status: ok}`
+### PR-D: DB + Alembic + subscriptions (сделано)
+- SQLAlchemy модели + миграции
+- `/subscriptions` работают через Postgres
 
----
-
-### PR-C: DB слой + миграции (1–2 дня)
-**Цель:** подготовить PostgreSQL как источник истины.
-
-Добавить зависимости:
-- `sqlalchemy`, `alembic`, `psycopg`
-
-Модели (минимум):
-- `Tender` (source, source_id, title, price, region, published_at, url, raw_json)
-- `Subscription` (chat_id, keyword, region, min_price, created_at, active)
-- `Delivery` (subscription_id, tender_id, sent_at, status)
-
-Deliverables:
-- `app/db/` (engine, session)
-- `app/models/`
-- `app/repositories/`
-- `alembic/` + первая миграция
-
-Acceptance:
-- миграции применяются в docker-compose
-- `POST /subscriptions` реально пишет в БД
+### PR-E: Реальный источник тендеров (сделано)
+- `/search` и `/tenders/{id}` через GosPlan v2 test
+- кеш в Postgres
 
 ---
 
-### PR-D: Источник данных zakupki.gov.ru (2–4 дня)
-**Цель:** реальный поиск и нормализация.
+## 3) Следующие PR (что делаем дальше)
 
-Решение:
-- Начать с одного источника: `zakupki.gov.ru`.
-- Реализовать клиент в `app/sources/zakupki/`.
+### PR-F: Telegram‑бот (MVP)
+- `/start`, `/my`, `/add`
+- сохранение chat_id
 
-Функции:
-- `search(keyword, region, min_price, published_from)` → list[TenderNormalized]
-- `get_tender(source_id)` → TenderNormalized + детали (минимум: title, price, deadline/published, url)
+### PR-G: Планировщик + рассылка
+- Celery worker + beat
+- дедуп по `deliveries(subscription_id, tender_id)`
 
-Нормализация (единый формат):
-- `id` (source_id)
-- `title`
-- `price`
-- `currency`
-- `region`
-- `published_at`
-- `deadline_at` (если доступно)
-- `customer`
-- `url`
+### PR-H: Сайт (лендинг + мини‑кабинет)
+- `/` — лендинг с CTA
+- `/app` — подписки (минимум)
 
-Acceptance:
-- `/search` выдаёт 10+ реальных тендеров
-- `/tenders/{id}` отдаёт реальную карточку
+### PR-I: Telegram Mini App (после MVP)
 
 ---
 
-### PR-E: Подписки + дедуп (1–2 дня)
-**Цель:** подписка сохраняется, а выдача/рассылка не дублирует.
+## 4) Порядок прямо сейчас
 
-Deliverables:
-- `POST /subscriptions` принимает фильтр (keyword, region, min_price) + `chat_id`
-- уникальность/дедуп логика (Delivery уникальна по subscription+tender)
-
-Acceptance:
-- при повторной обработке не создаются повторные deliveries
-
----
-
-### PR-F: Telegram-бот (1–2 дня)
-**Цель:** основной UX MVP.
-
-Минимум команд:
-- `/start` — приветствие + как пользоваться
-- `/my` — показать активные подписки
-- `/add` — быстрый флоу добавления (можно кнопками позже)
-
-Deliverables:
-- `app/integrations/telegram/` (aiogram или python-telegram-bot)
-- хранение chat_id
-
-Acceptance:
-- бот отвечает на `/start`
-- можно привязать chat_id и создать подписку
-
----
-
-### PR-G: Планировщик рассылки (1–2 дня)
-**Цель:** периодическая проверка и отправка.
-
-Вариант 1 (рекомендую): Celery + Beat
-- tasks: `sync_new_tenders()`, `deliver_notifications()`
-
-Deliverables:
-- celery worker + beat в docker-compose
-- rate limiting и обработка ошибок
-
-Acceptance:
-- раз в N минут появляются сообщения по новым тендерам
-
----
-
-### PR-H: Сайт (лендинг + минимальный кабинет) (1–3 дня)
-**Цель:** чтобы продукт существовал не только как бот.
-
-MVP сайта:
-- `/` — лендинг (оффер, примеры, CTA «Открыть в Telegram»)
-- `/app` — простая страница управления подписками (минимум)
-
-Реализация:
-- вариант 1: простой HTML (server-side) + API
-- вариант 2: маленький frontend (например, Next.js) — позже
-
-Acceptance:
-- лендинг открывается
-- есть понятная кнопка перехода в Telegram
-- базовая страница показывает подписки (хотя бы read-only)
-
----
-
-### PR-I: Telegram Mini App (V1/V2) (2–6 дней)
-**Цель:** быстрый UI внутри Telegram.
-
-Функции мини-аппы:
-- список подписок
-- добавить/удалить
-- просмотр последних тендеров по подписке
-
-Acceptance:
-- мини-аппа запускается из бота
-- выполняет базовые CRUD действия по подпискам
-
----
-
-### PR-J: Пипл-френдли полировка (1 день)
-**Цель:** “первый успех за 2 минуты”.
-
-- короткие сообщения
-- понятные ошибки
-- демо-режим/пример
-- README: сценарии
-
----
-
-## 3) Формат уведомления (коротко и понятно)
-
-Шаблон:
-- Заголовок (1 строка)
-- Цена + дедлайн
-- Регион + заказчик
-- Ссылка
-
----
-
-## 4) Скоринг/риск (после MVP)
-
-Только explainable:
-- `score: 0..100`
-- `reasons[]`: список причин
-
----
-
-## 5) Монетизация (после MVP)
-
-Freemium:
-- Free: 1 подписка + 1 регион
-- Pro: до N подписок + больше фильтров + чаще проверка
-
----
-
-## 6) Маркетинг (только таргет)
-
-- Реклама ведёт на лендинг с одним CTA: «получать тендеры в Telegram»
-
----
-
-## 7) Порядок прямо сейчас (следующий шаг)
-
-1) PR-B Docker
-2) PR-C DB + миграции
-3) PR-D zakupki search
-4) PR-F Telegram-бот
-5) PR-G scheduler
-6) PR-H сайт
-7) PR-I Telegram Mini App
+1) PR-F Telegram‑бот
+2) PR-G scheduler
+3) PR-H сайт
+4) PR-I Telegram Mini App
 

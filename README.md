@@ -19,20 +19,23 @@ docker compose run --rm api alembic upgrade head
 ```
 
 ### 4) Проверка
-- Health: `GET http://localhost:8000/health`
+Health:
+```bash
+curl 'http://localhost:8000/health'
+```
 
 ---
 
 ## Реальный поиск тендеров (MVP)
 
-> Источник: GosPlan API v2 test (обёртка над ЕИС/zakupki). Настраивается переменной `GOSPLAN_BASE_URL`.
+> Источник: GosPlan API v2 test (обёртка над ЕИС/zakupki, 44‑ФЗ). Настраивается переменной `GOSPLAN_BASE_URL`.
 
-### Поиск
+Поиск:
 ```bash
 curl 'http://localhost:8000/search?keyword=мебель&region=77&limit=5'
 ```
 
-### Карточка
+Карточка:
 1) возьми `source_id` из результатов поиска
 2) запрос:
 ```bash
@@ -55,27 +58,16 @@ curl -X POST http://localhost:8000/subscriptions \
 curl 'http://localhost:8000/subscriptions?chat_id=demo'
 ```
 
-## Локальный старт (Poetry)
-
-### Требования
-- Python **3.11**
-- Poetry
-
-### Установка
-```bash
-poetry install
-```
-
-### Запуск API
-```bash
-poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+---
 
 ## Документы
+
+- `WORK_REPORT.md` — подробный отчёт по проделанной работе
 - `PLAN.md` — полный план работ
 - `CHECKLIST.md` — чеклист соответствия задумке
 - `TODO.md` — дорожная карта
 
 ## Источники
-- Swagger GosPlan (44-ФЗ): <https://swagger.gosplan.info/?urls.primaryName=44-%D0%A4%D0%97>
+
+- Swagger GosPlan (44‑ФЗ): <https://swagger.gosplan.info/?urls.primaryName=44-%D0%A4%D0%97>
 - Wiki GosPlan: <https://wiki.gosplan.info>
