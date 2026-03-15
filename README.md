@@ -6,7 +6,7 @@ TenderFox — MVP агрегатора тендеров: **поиск → фил
 
 ### 1) Подготовка
 - Установи Docker + Docker Compose.
-- Проверь переменные окружения в `.env`.
+- Заполни `.env` (минимум: `TELEGRAM_BOT_TOKEN`).
 
 ### 2) Запуск инфраструктуры
 ```bash
@@ -26,6 +26,15 @@ curl 'http://localhost:8000/health'
 
 ---
 
+## Telegram-бот (MVP)
+
+Команды:
+- `/start`
+- `/add <ключевые слова> [регион_код]` (пример: `/add мебель 77`)
+- `/my`
+
+---
+
 ## Реальный поиск тендеров (MVP)
 
 > Источник: GosPlan API v2 test (обёртка над ЕИС/zakupki, 44‑ФЗ). Настраивается переменной `GOSPLAN_BASE_URL`.
@@ -38,22 +47,6 @@ curl 'http://localhost:8000/search?keyword=мебель&region=77&limit=5'
 Карточка:
 ```bash
 curl 'http://localhost:8000/tenders/<source_id>'
-```
-
----
-
-## Подписки (пока MVP без бота)
-
-Создать подписку:
-```bash
-curl -X POST http://localhost:8000/subscriptions \
-  -H 'Content-Type: application/json' \
-  -d '{"chat_id":"demo","keyword":"стройка","region":"77","min_price":100000}'
-```
-
-Посмотреть подписки:
-```bash
-curl 'http://localhost:8000/subscriptions?chat_id=demo'
 ```
 
 ---
