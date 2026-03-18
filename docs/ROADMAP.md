@@ -32,8 +32,19 @@
 - API: `/health`, `/search`, `/tenders/{id}`, `/subscriptions`
 - Источник тендеров через GosPlan v2 test
 - Лендинг (статический) в `web/`
+- CI (GitHub Actions): `ruff` + `pytest`
 
 Следующие шаги MVP:
-- Telegram onboarding: получение/сохранение `chat_id`
+- Регистрация/аккаунты (PHONE-first) с поддержкой телефонов СНГ
+- Подтверждение телефона: Telegram contact → fallback SMS
+- Привязка Telegram к user (доставка уведомлений)
 - Реальная доставка уведомлений по подпискам (end-to-end)
 - Операционное оформление scheduler (настройки, мониторинг, DoD)
+
+---
+
+## Funding / Grants
+
+- Цель: подать заявку на грант Yandex Cloud для развития TenderFox.
+- Артефакты: описание продукта, статус MVP, план работ 3–6 месяцев, бюджет, метрики.
+- Ссылка на задачу: см. `docs/TODO.md` → раздел **Funding / Grants**.
