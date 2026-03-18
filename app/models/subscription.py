@@ -14,7 +14,9 @@ class Subscription(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     # NEW: subscriptions belong to user
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # legacy: used by old bot/API flow
     chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
