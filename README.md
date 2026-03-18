@@ -35,19 +35,18 @@ curl 'http://localhost:8000/health'
 
 ---
 
-## Реальный поиск тендеров (MVP)
+## Авто-рассылка (MVP)
 
-> Источник: GosPlan API v2 test (обёртка над ЕИС/zakupki, 44‑ФЗ). Настраивается переменной `GOSPLAN_BASE_URL`.
+Сервис `scheduler` в docker-compose каждые `SCHEDULER_INTERVAL_SECONDS` секунд:
+- берёт активные подписки из БД
+- ищет тендеры по каждому фильтру
+- отправляет новые тендеры в Telegram
+- дедуп делает через таблицу `deliveries` (unique по subscription+tender)
 
-Поиск:
-```bash
-curl 'http://localhost:8000/search?keyword=мебель&region=77&limit=5'
-```
-
-Карточка:
-```bash
-curl 'http://localhost:8000/tenders/<source_id>'
-```
+Настройки в `.env`:
+- `SCHEDULER_INTERVAL_SECONDS` (по умолчанию 300)
+- `SCHEDULER_STAGE` (по умолчанию 1 = приём заявок)
+- `SCHEDULER_LIMIT_PER_SUB` (по умолчанию 20)
 
 ---
 
