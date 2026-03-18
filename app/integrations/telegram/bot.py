@@ -12,7 +12,7 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.models.base import Base
+from app.models.telegram_pending_phone import TelegramPendingPhone
 
 
 PHONE_RE = re.compile(r"^\+?\d{10,16}$")
@@ -56,33 +56,7 @@ async def _api_verify_telegram_contact(
         return r.json()
 
 
-# --- DB model for pending verify ---
-try:
-    from sqlalchemy import Boolean, DateTime, String
-    from sqlalchemy.orm import Mapped, mapped_column
-
-    class TelegramPendingPhone(Base):
-        __tablename__ = "telegram_pending_phones"
-
-        id: Mapped[int] = mapped_column(primary_key=True)
-        chat_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-        telegram_user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-        phone_e164: Mapped[str] = mapped_column(String(32), nullable=False)
-        created_at: Mapped[datetime] = mapped_column(
-            DateTime(timezone=True), nullable=False, default=lambda: datetime.now(tz=timezone.utc)
-        )
-        expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-        used: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=False)
-
-except Exception:
-    # If imports fail for some reason, bot should still crash fast at startup.
-    TelegramPendingPhone = None  # type: ignore
-
-
 def _save_pending_phone(*, chat_id: str, telegram_user_id: str, phone_e164: str) -> None:
-    if TelegramPendingPhone is None:
-        raise RuntimeError("TelegramPendingPhone model is not available")
-
     db = SessionLocal()
     try:
         now = datetime.now(tz=timezone.utc)
@@ -109,9 +83,6 @@ def _save_pending_phone(*, chat_id: str, telegram_user_id: str, phone_e164: str)
 
 
 def _get_pending_phone(*, chat_id: str, telegram_user_id: str) -> str | None:
-    if TelegramPendingPhone is None:
-        raise RuntimeError("TelegramPendingPhone model is not available")
-
     db = SessionLocal()
     try:
         now = datetime.now(tz=timezone.utc)
@@ -132,9 +103,6 @@ def _get_pending_phone(*, chat_id: str, telegram_user_id: str) -> str | None:
 
 
 def _mark_pending_used(*, chat_id: str, telegram_user_id: str) -> None:
-    if TelegramPendingPhone is None:
-        raise RuntimeError("TelegramPendingPhone model is not available")
-
     db = SessionLocal()
     try:
         db.query(TelegramPendingPhone).filter(
@@ -174,7 +142,6 @@ async def cmd_verify(message: Message) -> None:
 async def on_text(message: Message) -> None:
     text = (message.text or "").strip()
     if text.startswith("/"):
-        # ignore commands here
         return
 
     phone = _normalize_phone(text)
@@ -235,8 +202,6 @@ async def main() -> None:
 
     dp.message.register(cmd_start, Command("start"))
     dp.message.register(cmd_verify, Command("verify"))
-
-    # handlers via decorators above
 
     await dp.start_polling(bot)
 
