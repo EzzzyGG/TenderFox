@@ -14,6 +14,7 @@ from app.db.session import SessionLocal
 from app.models.delivery import Delivery
 from app.models.subscription import Subscription
 from app.models.tender import Tender
+from app.models.telegram_link import TelegramLink
 from app.sources.gosplan.client import GosplanClient
 from app.sources.gosplan.normalize import normalize_purchase
 
@@ -46,6 +47,22 @@ def _dt_str(dt) -> str:
     return str(dt)
 
 
+def _resolve_chat_id(db: Session, sub: Subscription) -> tuple[str | None, str]:
+    """Return (chat_id, source) where source in {'telegram_links','legacy','missing'}."""
+    if getattr(sub, "user_id", None):
+        chat_id = db.execute(
+            select(TelegramLink.chat_id).where(TelegramLink.user_id == sub.user_id)
+        ).scalar_one_or_none()
+        if chat_id:
+            return str(chat_id), "telegram_links"
+
+    # fallback to legacy chat_id stored on subscription
+    if getattr(sub, "chat_id", None):
+        return str(sub.chat_id), "legacy"
+
+    return None, "missing"
+
+
 async def send_message(bot_token: str, chat_id: str, text: str) -> None:
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     async with httpx.AsyncClient(timeout=20.0) as client:
@@ -57,7 +74,6 @@ async def send_message(bot_token: str, chat_id: str, text: str) -> None:
                 "disable_web_page_preview": True,
             },
         )
-        # If telegram returns 429, it can include retry_after
         if r.status_code == 429:
             try:
                 data = r.json()
@@ -93,15 +109,11 @@ def mark_failed(db: Session, delivery_id: int, error_text: str) -> None:
     if not d:
         return
     d.status = "failed"
-    # keep sent_at empty on failed
-    # store error in logs only for now
     db.commit()
     logger.warning("delivery_failed delivery_id=%s error=%s", delivery_id, error_text)
 
 
 def build_message(sub: Subscription, tender: Tender) -> str:
-    # Intentionally short and readable.
-    # Emojis can be removed later; leaving a single fox as branding.
     parts = [
         "🦊 TenderFox",
         f"Запрос: {sub.keyword} | регион: {sub.region or '-'}",
@@ -127,10 +139,15 @@ async def process_once(bot_token: str) -> dict:
         "sent": 0,
         "dry_run": DRY_RUN,
         "capped": False,
+        "resolved_via_link": 0,
+        "resolved_via_legacy": 0,
+        "missing_chat_id": 0,
     }
 
     try:
-        subs = list(db.execute(select(Subscription).where(Subscription.active.is_(True))).scalars().all())
+        subs = list(
+            db.execute(select(Subscription).where(Subscription.active.is_(True))).scalars().all()
+        )
         stats["subs"] = len(subs)
         logger.info("cycle_start subs=%s dry_run=%s", len(subs), DRY_RUN)
 
@@ -141,6 +158,19 @@ async def process_once(bot_token: str) -> dict:
                 stats["capped"] = True
                 logger.info("cycle_cap_reached max_messages=%s", MAX_MESSAGES_PER_CYCLE)
                 break
+
+            chat_id, source = _resolve_chat_id(db, sub)
+            if not chat_id:
+                stats["missing_chat_id"] += 1
+                logger.info(
+                    "skip_no_chat_id subscription_id=%s user_id=%s", sub.id, getattr(sub, "user_id", None)
+                )
+                continue
+
+            if source == "telegram_links":
+                stats["resolved_via_link"] += 1
+            elif source == "legacy":
+                stats["resolved_via_legacy"] += 1
 
             region = None
             if sub.region and str(sub.region).isdigit():
@@ -185,7 +215,12 @@ async def process_once(bot_token: str) -> dict:
                         raw_json=n.raw,
                     )
                 except Exception as e:
-                    logger.exception("db_upsert_error subscription_id=%s source_id=%s err=%s", sub.id, n.source_id, e)
+                    logger.exception(
+                        "db_upsert_error subscription_id=%s source_id=%s err=%s",
+                        sub.id,
+                        n.source_id,
+                        e,
+                    )
                     continue
 
                 created = create_delivery(db, subscription_id=sub.id, tender_id=t.id)
@@ -204,14 +239,19 @@ async def process_once(bot_token: str) -> dict:
                 text = build_message(sub, t)
 
                 if DRY_RUN:
-                    logger.info("dry_run_send chat_id=%s delivery_id=%s", sub.chat_id, delivery.id)
+                    logger.info(
+                        "dry_run_send chat_id=%s delivery_id=%s via=%s",
+                        chat_id,
+                        delivery.id,
+                        source,
+                    )
                     mark_sent(db, delivery.id)
                     sent_in_cycle += 1
                     stats["sent"] += 1
                     continue
 
                 try:
-                    await send_message(bot_token, sub.chat_id, text)
+                    await send_message(bot_token, chat_id, text)
                     mark_sent(db, delivery.id)
                     sent_in_cycle += 1
                     stats["sent"] += 1
@@ -220,11 +260,14 @@ async def process_once(bot_token: str) -> dict:
                     mark_failed(db, delivery.id, str(e))
 
         logger.info(
-            "cycle_done subs=%s new_deliveries=%s sent=%s capped=%s",
+            "cycle_done subs=%s new_deliveries=%s sent=%s capped=%s via_link=%s via_legacy=%s missing_chat_id=%s",
             stats["subs"],
             stats["new_deliveries"],
             stats["sent"],
             stats["capped"],
+            stats["resolved_via_link"],
+            stats["resolved_via_legacy"],
+            stats["missing_chat_id"],
         )
         return stats
 
