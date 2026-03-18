@@ -32,63 +32,52 @@
 
 ### MVP готов, если:
 - `GET /search` возвращает **реальные** тендеры из источника
-- `POST /subscriptions` сохраняет фильтр + chat_id
-- Планировщик находит новые тендеры под подписки
-- Telegram бот доставляет сообщения
-- Есть **сайт-лендинг** с CTA «Запустить в Telegram» и базовая страница управления подписками (минимум)
+- `POST /subscriptions` сохраняет фильтр подписки + `chat_id`
+- Планировщик находит новые тендеры по подписке и отправляет в Telegram
+- Есть базовый лендинг + CTA «Получать в Telegram»
 - Запуск одной командой: `docker compose up --build`
 
 ### V1 готов, если:
-- Есть внятный веб-кабинет (управление подписками/история/фильтры)
-- Есть тарифы/лимиты (если включаем оплату)
-- Есть объяснимый скоринг/риск (rule-based)
-- Есть Telegram Mini App (минимум): просмотр подписок/добавление/удаление
+- Есть кабинет/управление подписками
+- Есть объяснимый риск/скоринг (rule-based)
+- Есть тарифы/оплаты
 
 ---
 
-## 2) Этапы разработки (пакетами PR)
+## 2) Этапы реализации (пакетами PR)
 
-### PR-A: Документация и управление работой (сделано)
-- `CHECKLIST.md`, `TODO.md`, `PLAN.md`
+### PR-A: Документация и управление работой
+- `docs/CHECKLIST.md`, `docs/TODO.md`, `docs/PLAN.md`
 
-### PR-B: Каркас проекта (сделано)
+### PR-B: Каркас проекта
 - FastAPI + Poetry + Python 3.11
 
-### PR-C: Docker bootstrap (сделано)
-- Dockerfile + docker-compose (api + postgres + redis)
+### PR-C: Docker bootstrap
+- Dockerfile + docker-compose
 
-### PR-D: DB + Alembic + subscriptions (сделано)
+### PR-D: DB + Alembic + subscriptions
 - SQLAlchemy модели + миграции
-- `/subscriptions` работают через Postgres
 
-### PR-E: Реальный источник тендеров (сделано)
-- `/search` и `/tenders/{id}` через GosPlan v2 test
-- кеш в Postgres
+### PR-E: Реальный источник тендеров
+- `/search` + `/tenders/{id}`
 
----
-
-## 3) Следующие PR (что делаем дальше)
-
-### PR-F: Telegram‑бот (MVP)
-- `/start`, `/my`, `/add`
-- сохранение chat_id
+### PR-F: Telegram (MVP)
+- команды `/start`, `/add`, `/my`
+- сохранение `chat_id`
 
 ### PR-G: Планировщик + рассылка
-- Celery worker + beat
-- дедуп по `deliveries(subscription_id, tender_id)`
+- периодический job
+- дедуп deliveries
 
-### PR-H: Сайт (лендинг + мини‑кабинет)
-- `/` — лендинг с CTA
-- `/app` — подписки (минимум)
+### PR-H: Сайт (лендинг + минимум кабинет)
 
 ### PR-I: Telegram Mini App (после MVP)
 
 ---
 
-## 4) Порядок прямо сейчас
+## 3) Порядок приоритета
 
-1) PR-F Telegram‑бот
-2) PR-G scheduler
-3) PR-H сайт
-4) PR-I Telegram Mini App
-
+1) Telegram-бот (onboarding)
+2) Планировщик (реальная доставка)
+3) Сайт (лендинг)
+4) Mini App

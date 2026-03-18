@@ -1,4 +1,5 @@
 # TenderWin PRO: Агрегатор и Аналитик Тендеров для РФ
+
 Система поиска тендеров со встроенным скорингом надежности заказчиков.
 
 ## КИЛЛЕР-ФИЧА: Corruption & Risk Score
@@ -16,6 +17,23 @@
 
 ## КАК ЗАПУСТИТЬ
 1. Установите Docker и Docker Compose.
-2. Скопируйте файл `.env.example` в `.env` и вставьте свои ключи (Dadata, ЮKassa).
+2. Скопируйте файл `.env.example` в `.env` и вставьте свои ключи.
 3. Выполните: `docker-compose up --build -d`.
 4. API будет доступно по адресу: `http://localhost:8000/docs`.
+
+---
+
+## Текущее состояние (по факту репозитория)
+
+Сделано:
+- Docker Compose (api + postgres + redis)
+- Alembic миграции
+- Postgres модели `tenders/subscriptions/deliveries`
+- API: `/health`, `/search`, `/tenders/{id}`, `/subscriptions`
+- Источник тендеров через GosPlan v2 test
+- Лендинг (статический) в `web/`
+
+Следующие шаги MVP:
+- Telegram onboarding: получение/сохранение `chat_id`
+- Реальная доставка уведомлений по подпискам (end-to-end)
+- Операционное оформление scheduler (настройки, мониторинг, DoD)

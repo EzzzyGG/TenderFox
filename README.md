@@ -6,7 +6,11 @@ TenderFox — MVP агрегатора тендеров: **поиск → фил
 
 ### 1) Подготовка
 - Установи Docker + Docker Compose.
-- Заполни `.env` (минимум: `TELEGRAM_BOT_TOKEN`).
+- Скопируй `.env.example` → `.env` и заполни минимум: `TELEGRAM_BOT_TOKEN`.
+
+```bash
+cp .env.example .env
+```
 
 ### 2) Запуск инфраструктуры
 ```bash
@@ -60,13 +64,25 @@ docker compose logs -f scheduler
 
 ---
 
+## CI
+
+В репозитории настроен GitHub Actions CI:
+- `ruff` (lint)
+- `pytest` (tests)
+
+---
+
 ## Документы
 
-- `DEPLOY_RU_YC.md` — деплой в РФ (Yandex Cloud) для MVP
-- `WORK_REPORT.md` — подробный отчёт по проделанной работе
-- `PLAN.md` — полный план работ
-- `CHECKLIST.md` — чеклист соответствия задумке
-- `TODO.md` — дорожная карта
+Все документы проекта лежат в папке `docs/`:
+- `docs/DEPLOY_RU_YC.md` — деплой в РФ (Yandex Cloud) для MVP
+- `docs/WORK_REPORT.md` — отчёт по проделанной работе
+- `docs/PLAN.md` — подробный план
+- `docs/CHECKLIST.md` — чеклист соответствия задумке
+- `docs/TODO.md` — план развития
+- `docs/ROADMAP.md` — продуктовый роадмап
+- `docs/LEGAL_RU.md` — заметки по юр.части (РФ)
+- `docs/PAYMENTS_YOOKASSA_NOTES.md` — заметки по интеграции оплат (YooKassa)
 
 ## Источники
 
