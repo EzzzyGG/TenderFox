@@ -58,7 +58,7 @@ async def _api_verify_telegram_contact(
 
 # --- DB model for pending verify ---
 try:
-    from sqlalchemy import Boolean, DateTime, Integer, String
+    from sqlalchemy import Boolean, DateTime, String
     from sqlalchemy.orm import Mapped, mapped_column
 
     class TelegramPendingPhone(Base):
