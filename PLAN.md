@@ -4,91 +4,38 @@
 
 ## Каналы (surface) продукта
 
-Мы делаем **везде** одинаковую продуктовую логику, но разные интерфейсы:
-
 ### Сейчас (MVP)
-1) **Telegram-бот** — основной канал (onboarding, подписки, уведомления)
-2) **Сайт** — лендинг + простой кабинет (минимум) для управления подписками/фильтрами
+1) Telegram-бот — основной канал (подписки, уведомления)
+2) Сайт — лендинг (сейчас статический)
 
 ### Позже (V1/V2)
-3) **Telegram Mini App** (Telegram App) — быстрый UI внутри Telegram для управления подписками и просмотра выдачи.
-
-> Принцип: один backend (FastAPI) и общие сущности (тендеры/подписки), а UI-слои подключаются постепенно.
+3) Telegram Mini App — управление подписками внутри Telegram
 
 ---
 
-## 0) Текущее состояние
+## Текущее состояние (что уже сделано)
 
-- Запуск: Docker Compose (API + Postgres + Redis)
-- Миграции: Alembic (явной командой)
-- Подписки: `POST/GET /subscriptions` пишут/читают из Postgres
-- Тендеры:
-  - `GET /search` — реальный поиск (через GosPlan v2 test)
-  - `GET /tenders/{id}` — карточка (кеш в Postgres)
-
----
-
-## 1) Definition of Done
-
-### MVP готов, если:
-- `GET /search` возвращает **реальные** тендеры из источника
-- `POST /subscriptions` сохраняет фильтр + chat_id
-- Планировщик находит новые тендеры под подписки
-- Telegram бот доставляет сообщения
-- Есть **сайт-лендинг** с CTA «Запустить в Telegram» и базовая страница управления подписками (минимум)
-- Запуск одной командой: `docker compose up --build`
-
-### V1 готов, если:
-- Есть внятный веб-кабинет (управление подписками/история/фильтры)
-- Есть тарифы/лимиты (если включаем оплату)
-- Есть объяснимый скоринг/риск (rule-based)
-- Есть Telegram Mini App (минимум): просмотр подписок/добавление/удаление
+- Docker Compose: API + Postgres + Redis + Bot + Scheduler + Web
+- Миграции: Alembic
+- Реальные тендеры: `/search`, `/tenders/{id}` (через GosPlan v2 test)
+- Подписки: `/subscriptions`
+- Telegram: бот `/start`, `/add`, `/my`
+- Авто-рассылка: scheduler + deliveries dedupe
+- CI: GitHub Actions (ruff + pytest)
 
 ---
 
-## 2) Этапы разработки (пакетами PR)
+## Что требуется сделать дальше (MVP → прод)
 
-### PR-A: Документация и управление работой (сделано)
-- `CHECKLIST.md`, `TODO.md`, `PLAN.md`
-
-### PR-B: Каркас проекта (сделано)
-- FastAPI + Poetry + Python 3.11
-
-### PR-C: Docker bootstrap (сделано)
-- Dockerfile + docker-compose (api + postgres + redis)
-
-### PR-D: DB + Alembic + subscriptions (сделано)
-- SQLAlchemy модели + миграции
-- `/subscriptions` работают через Postgres
-
-### PR-E: Реальный источник тендеров (сделано)
-- `/search` и `/tenders/{id}` через GosPlan v2 test
-- кеш в Postgres
+1) **Прод-домен + HTTPS (YC)**
+2) **Стабилизация источника** (ключ для прод GosPlan / резервный источник)
+3) **Мини-кабинет /app**
 
 ---
 
-## 3) Следующие PR (что делаем дальше)
+## После MVP
 
-### PR-F: Telegram‑бот (MVP)
-- `/start`, `/my`, `/add`
-- сохранение chat_id
-
-### PR-G: Планировщик + рассылка
-- Celery worker + beat
-- дедуп по `deliveries(subscription_id, tender_id)`
-
-### PR-H: Сайт (лендинг + мини‑кабинет)
-- `/` — лендинг с CTA
-- `/app` — подписки (минимум)
-
-### PR-I: Telegram Mini App (после MVP)
-
----
-
-## 4) Порядок прямо сейчас
-
-1) PR-F Telegram‑бот
-2) PR-G scheduler
-3) PR-H сайт
-4) PR-I Telegram Mini App
+- Telegram Mini App
+- скоринг/риск (explainable)
+- монетизация
 

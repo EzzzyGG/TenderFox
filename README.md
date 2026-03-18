@@ -6,6 +6,10 @@ TenderFox — MVP агрегатора тендеров: **поиск → фил
 
 ### 1) Подготовка
 - Установи Docker + Docker Compose.
+- Создай `.env` из примера:
+```bash
+cp .env.example .env
+```
 - Заполни `.env` (минимум: `TELEGRAM_BOT_TOKEN`).
 
 ### 2) Запуск инфраструктуры
@@ -57,6 +61,14 @@ Telegram бот:
 ```bash
 docker compose logs -f scheduler
 ```
+
+---
+
+## CI
+
+В репозитории настроен GitHub Actions:
+- `ruff` (линт)
+- `pytest` (тесты)
 
 ---
 
