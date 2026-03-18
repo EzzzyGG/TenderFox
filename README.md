@@ -40,13 +40,21 @@ curl 'http://localhost:8000/health'
 Сервис `scheduler` в docker-compose каждые `SCHEDULER_INTERVAL_SECONDS` секунд:
 - берёт активные подписки из БД
 - ищет тендеры по каждому фильтру
-- отправляет новые тендеры в Telegram
+- отправляет **новые** тендеры в Telegram
 - дедуп делает через таблицу `deliveries` (unique по subscription+tender)
 
 Настройки в `.env`:
 - `SCHEDULER_INTERVAL_SECONDS` (по умолчанию 300)
 - `SCHEDULER_STAGE` (по умолчанию 1 = приём заявок)
 - `SCHEDULER_LIMIT_PER_SUB` (по умолчанию 20)
+- `SCHEDULER_MAX_MESSAGES_PER_CYCLE` (по умолчанию 30)
+- `SCHEDULER_SLEEP_BETWEEN_MESSAGES_MS` (по умолчанию 250)
+- `SCHEDULER_DRY_RUN` (true/false) — прогон без отправки (помечает deliveries как sent)
+
+Логи:
+```bash
+docker compose logs -f scheduler
+```
 
 ---
 
