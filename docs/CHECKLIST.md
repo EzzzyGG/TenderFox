@@ -1,54 +1,43 @@
-# TenderFox — checklist соответствия задумке (Стартап #10)
+# TenderFox — checklist соответствия задумке
 
 Задумка: агрегатор тендеров (MVP), фильтры, уведомления (Telegram), далее — скоринг/риск и аналитика.
 
 > Статусы: **DONE** / **PARTIAL** / **TODO**
 
-## 0) Текущая оценка соответствия
-
-- Общая готовность к задумке: **~55–60%**
-
----
-
 ## 1) Источник данных (тендеры)
-
-- [x] **DONE** Подключён реальный REST-источник (через GosPlan v2 test как обёртку над ЕИС/zakupki)
-- [x] **DONE** Получение карточки тендера (детали)
-- [x] **DONE** Нормализация полей (единый формат результата в API)
-- [ ] **TODO** Инкрементальная синхронизация «новых» тендеров по времени публикации/изменения
-- [ ] **TODO** Резервный источник при недоступности обёртки
+- [x] **DONE** Реальный REST-источник (через GosPlan v2 test)
+- [x] **DONE** Карточка тендера
+- [x] **DONE** Нормализация результата
+- [ ] **TODO** Инкрементальная синхронизация «новых» тендеров
+- [ ] **TODO** Резервный источник
 
 ## 2) Хранилище (PostgreSQL)
-
 - [x] **DONE** Схема БД: tenders, subscriptions, deliveries
 - [x] **DONE** Миграции (Alembic)
 - [x] **DONE** Idempotency: уникальные ключи по `(source, source_id)`
 
 ## 3) API (FastAPI)
+- [x] **DONE** `/search`
+- [x] **DONE** `/tenders/{id}`
+- [x] **DONE** `/subscriptions` (текущее: chat_id)
 
-- [x] **DONE** `GET /search` — реальные результаты
-- [x] **DONE** `GET /tenders/{id}` — карточка (кеш в БД)
-- [x] **DONE** `POST /subscriptions`
-- [x] **DONE** `GET /subscriptions`
+## 4) Пользователи и PHONE-first auth
+- [ ] **TODO** Таблица users
+- [ ] **TODO** Нормализация телефонов СНГ (E.164)
+- [ ] **TODO** Верификация телефона: Telegram contact → fallback SMS
+- [ ] **TODO** JWT auth (для Next.js)
 
-## 4) Уведомления (Telegram)
+## 5) Telegram (канал доставки)
+- [ ] **TODO** Привязка Telegram к `user_id`
+- [ ] **TODO** Отправка уведомлений
 
-- [ ] **TODO** Telegram bot + получение chat_id
-- [ ] **TODO** Отправка уведомлений по подписке
-
-## 5) Планировщик
-
-- [ ] **TODO** Периодическая проверка подписок и доставка
+## 6) Scheduler
+- [ ] **TODO** End-to-end рассылка по подпискам пользователя
 - [x] **DONE** Дедуп deliveries (unique subscription_id+tender_id)
 
-## 6) Пипл-френдли
-
-- [x] **DONE** Понятная выдача / фильтры
-
 ## 7) Инженерия
-
 - [x] **DONE** Структура проекта
 - [x] **DONE** Poetry/pyproject
 - [x] **DONE** Dockerfile + docker-compose
 - [x] **DONE** `.env.example`
-- [ ] **TODO** CI (GitHub Actions): lint + tests
+- [x] **DONE** CI: lint + tests
