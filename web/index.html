@@ -1,3 +1,92 @@
-# TenderFox
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TenderFox — тендеры в Telegram</title>
+  <meta name="description" content="TenderFox — быстрый мониторинг тендеров: подписался на запрос и получаешь новые тендеры в Telegram." />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="wrap header">
+    <div class="logo">TenderFox</div>
+    <nav class="nav">
+      <a href="#how">Как работает</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn btn-small" href="https://t.me/RuTenderFox_bot" target="_blank" rel="noopener">Открыть в Telegram</a>
+    </nav>
+  </header>
 
-Это MVP. Открой в браузере файл из `web/` после мерджа PR — будет заменено на HTML в следующем коммите.
+  <main class="wrap">
+    <section class="hero">
+      <h1>Тендеры, которые тебе нужны — прямо в Telegram</h1>
+      <p class="lead">
+        Пишешь запрос (например, <b>«мебель 77»</b>) — TenderFox находит новые тендеры и присылает уведомления.
+      </p>
+      <div class="cta">
+        <a class="btn" href="https://t.me/RuTenderFox_bot" target="_blank" rel="noopener">Запустить бота</a>
+        <a class="btn btn-ghost" href="#example">Посмотреть пример</a>
+      </div>
+      <div class="badges">
+        <span>44‑ФЗ (через ЕИС)</span>
+        <span>Подписки</span>
+        <span>Авто‑рассылка</span>
+      </div>
+    </section>
+
+    <section id="how" class="section">
+      <h2>Как работает</h2>
+      <ol class="steps">
+        <li>
+          <div class="step-title">1. Открываешь бота</div>
+          <div class="step-text">Нажимаешь «Запустить» в Telegram.</div>
+        </li>
+        <li>
+          <div class="step-title">2. Добавляешь подписку</div>
+          <div class="step-text">Команда: <code>/add мебель 77</code> (ключевые слова + код региона).</div>
+        </li>
+        <li>
+          <div class="step-title">3. Получаешь новые тендеры</div>
+          <div class="step-text">TenderFox периодически проверяет новые закупки и отправляет только новые (без дублей).</div>
+        </li>
+      </ol>
+    </section>
+
+    <section id="example" class="section">
+      <h2>Пример уведомления</h2>
+      <div class="card mono">
+        <div>🦊 TenderFox</div>
+        <div>Запрос: мебель | регион: 77</div>
+        <div>&nbsp;</div>
+        <div><b>Поставка офисной мебели для учреждения</b></div>
+        <div>Цена: 1 200 000 ₽</div>
+        <div>Дедлайн: 2026-03-20 12:00</div>
+        <div>https://zakupki.gov.ru/…</div>
+      </div>
+      <p class="muted">Точный формат может меняться — цель: коротко, понятно, без воды.</p>
+    </section>
+
+    <section id="faq" class="section">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <div class="q">Это бесплатно?</div>
+        <div class="a">Сейчас — да (MVP). Дальше возможен freemium.</div>
+
+        <div class="q">Какие регионы?</div>
+        <div class="a">Указывай код региона РФ (например, 77). В интерфейсе позже добавим выбор из списка.</div>
+
+        <div class="q">Почему Telegram?</div>
+        <div class="a">Потому что это самый быстрый канал: подписка → уведомления без личного кабинета.</div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="muted">TenderFox · MVP</div>
+      <div class="links">
+        <a href="https://t.me/RuTenderFox_bot" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://github.com/EzzzyGG/TenderFox" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>
