@@ -27,7 +27,6 @@ LIMIT_PER_SUB = int(os.getenv("SCHEDULER_LIMIT_PER_SUB", "20"))
 MAX_MESSAGES_PER_CYCLE = int(os.getenv("SCHEDULER_MAX_MESSAGES_PER_CYCLE", "30"))
 SLEEP_BETWEEN_MESSAGES_MS = int(os.getenv("SCHEDULER_SLEEP_BETWEEN_MESSAGES_MS", "250"))
 DRY_RUN = os.getenv("SCHEDULER_DRY_RUN", "false").lower() in {"1", "true", "yes"}
-ALLOW_LEGACY_CHAT_ID = os.getenv("SCHEDULER_ALLOW_LEGACY_CHAT_ID", "true").lower() in {"1", "true", "yes"}
 
 
 def _format_price(price) -> str:
@@ -49,16 +48,12 @@ def _dt_str(dt) -> str:
 
 
 def _resolve_chat_id(db: Session, sub: Subscription) -> tuple[str | None, str]:
-    """Return (chat_id, source) where source in {'telegram_links','legacy','missing'}."""
-    if getattr(sub, "user_id", None):
-        chat_id = db.execute(
-            select(TelegramLink.chat_id).where(TelegramLink.user_id == sub.user_id)
-        ).scalar_one_or_none()
-        if chat_id:
-            return str(chat_id), "telegram_links"
-
-    if ALLOW_LEGACY_CHAT_ID and getattr(sub, "chat_id", None):
-        return str(sub.chat_id), "legacy"
+    """Return (chat_id, source) where source in {'telegram_links','missing'}."""
+    chat_id = db.execute(
+        select(TelegramLink.chat_id).where(TelegramLink.user_id == sub.user_id)
+    ).scalar_one_or_none()
+    if chat_id:
+        return str(chat_id), "telegram_links"
 
     return None, "missing"
 
@@ -140,9 +135,7 @@ async def process_once(bot_token: str) -> dict:
         "dry_run": DRY_RUN,
         "capped": False,
         "resolved_via_link": 0,
-        "resolved_via_legacy": 0,
         "missing_chat_id": 0,
-        "allow_legacy_chat_id": ALLOW_LEGACY_CHAT_ID,
     }
 
     try:
@@ -166,14 +159,12 @@ async def process_once(bot_token: str) -> dict:
                 logger.info(
                     "skip_no_chat_id subscription_id=%s user_id=%s",
                     sub.id,
-                    getattr(sub, "user_id", None),
+                    sub.user_id,
                 )
                 continue
 
             if source == "telegram_links":
                 stats["resolved_via_link"] += 1
-            elif source == "legacy":
-                stats["resolved_via_legacy"] += 1
 
             region = None
             if sub.region and str(sub.region).isdigit():
@@ -263,15 +254,13 @@ async def process_once(bot_token: str) -> dict:
                     mark_failed(db, delivery.id, str(e))
 
         logger.info(
-            "cycle_done subs=%s new_deliveries=%s sent=%s capped=%s via_link=%s via_legacy=%s missing_chat_id=%s allow_legacy=%s",
+            "cycle_done subs=%s new_deliveries=%s sent=%s capped=%s via_link=%s missing_chat_id=%s",
             stats["subs"],
             stats["new_deliveries"],
             stats["sent"],
             stats["capped"],
             stats["resolved_via_link"],
-            stats["resolved_via_legacy"],
             stats["missing_chat_id"],
-            stats["allow_legacy_chat_id"],
         )
         return stats
 
@@ -290,13 +279,12 @@ async def main() -> None:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not set")
 
     logger.info(
-        "scheduler_start interval=%s stage=%s limit_per_sub=%s max_msgs=%s dry_run=%s allow_legacy=%s",
+        "scheduler_start interval=%s stage=%s limit_per_sub=%s max_msgs=%s dry_run=%s",
         POLL_INTERVAL_SECONDS,
         STAGE,
         LIMIT_PER_SUB,
         MAX_MESSAGES_PER_CYCLE,
         DRY_RUN,
-        ALLOW_LEGACY_CHAT_ID,
     )
 
     while True:
