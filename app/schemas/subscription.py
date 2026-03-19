@@ -8,19 +8,27 @@ from pydantic import BaseModel, Field
 class SubscriptionCreate(BaseModel):
     keyword: str = Field(min_length=2, max_length=200)
     region: str | None = Field(default=None, max_length=100)
+
     min_price: Decimal | None = None
+    max_price: Decimal | None = None
+
+    # comma-separated list: "word1,word2"
+    exclude_keywords: str | None = Field(default=None, max_length=500)
+
+    # filter tenders by published_at >= now - days_back
+    days_back: int | None = Field(default=None, ge=1, le=60)
 
 
 class SubscriptionOut(BaseModel):
     id: int
     user_id: int
 
-    # legacy (kept for transition; may be null)
-    chat_id: str | None = None
-
     keyword: str
-    region: str | None
-    min_price: Decimal | None
-    active: bool
+    region: str | None = None
 
-    model_config = {"from_attributes": True}
+    min_price: Decimal | None = None
+    max_price: Decimal | None = None
+    exclude_keywords: str | None = None
+    days_back: int | None = None
+
+    active: bool

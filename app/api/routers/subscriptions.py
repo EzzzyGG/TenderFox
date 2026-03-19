@@ -33,5 +33,8 @@ async def post_subscription(
         keyword=payload.keyword,
         region=payload.region,
         min_price=payload.min_price,
+        max_price=payload.max_price,
+        exclude_keywords=payload.exclude_keywords,
+        days_back=payload.days_back,
     )
     return {"item": SubscriptionOut.model_validate(sub).model_dump()}
