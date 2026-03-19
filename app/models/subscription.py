@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from sqlalchemy import Boolean, ForeignKey, Numeric, String
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -18,7 +18,12 @@ class Subscription(Base):
     )
 
     keyword: Mapped[str] = mapped_column(String(200), nullable=False)
+
+    # filters
     region: Mapped[str | None] = mapped_column(String(100), nullable=True)
     min_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    max_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    exclude_keywords: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    days_back: Mapped[int | None] = mapped_column(Integer(), nullable=True)
 
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
