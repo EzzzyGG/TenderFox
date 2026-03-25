@@ -22,12 +22,16 @@ from app.utils.phone import normalize_phone_to_e164
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# --- anti-bruteforce controls (MVP) ---
+MAX_SMS_VERIFY_ATTEMPTS = 5
+LOCKOUT_MINUTES = 15
+
 
 @router.post("/start")
 def start(payload: AuthStartIn, db: Session = Depends(get_db)) -> AuthStartOut:
     phone_e164 = normalize_phone_to_e164(payload.phone)
 
-    # SMS stub: generate deterministic short code for dev.
+    # SMS stub: deterministic short code for dev.
     # Replace with random + provider later.
     code = str(abs(hash(phone_e164)) % 1000000).zfill(6)
 
@@ -37,29 +41,51 @@ def start(payload: AuthStartIn, db: Session = Depends(get_db)) -> AuthStartOut:
     db.add(pv)
     db.commit()
 
-    # In MVP we return stub code so Next.js can show it in dev.
     return AuthStartOut(phone_e164=phone_e164, sms_stub_code=code, expires_in_seconds=600)
+
+
+def _latest_pv(db: Session, phone_e164: str) -> PhoneVerification | None:
+    return (
+        db.execute(
+            select(PhoneVerification)
+            .where(PhoneVerification.phone_e164 == phone_e164)
+            .order_by(PhoneVerification.id.desc())
+            .limit(1)
+        )
+        .scalars()
+        .one_or_none()
+    )
 
 
 @router.post("/verify_sms")
 def verify_sms(payload: AuthVerifySmsIn, db: Session = Depends(get_db)) -> AuthTokenOut:
     phone_e164 = normalize_phone_to_e164(payload.phone)
 
-    pv = db.execute(
-        select(PhoneVerification)
-        .where(PhoneVerification.phone_e164 == phone_e164)
-        .where(PhoneVerification.used == False)  # noqa: E712
-        .order_by(PhoneVerification.id.desc())
-        .limit(1)
-    ).scalar_one_or_none()
-
+    pv = _latest_pv(db, phone_e164)
     if not pv:
         raise HTTPException(status_code=400, detail="verification_not_found")
-    if pv.expires_at < datetime.now(tz=timezone.utc):
+
+    now = datetime.now(tz=timezone.utc)
+
+    # expired
+    if pv.expires_at < now:
         raise HTTPException(status_code=400, detail="verification_expired")
 
+    # lockout
+    if pv.locked_until is not None and pv.locked_until > now:
+        seconds = int((pv.locked_until - now).total_seconds())
+        raise HTTPException(
+            status_code=429,
+            detail={"error": "too_many_attempts", "retry_after_seconds": seconds},
+        )
+
+    # attempt accounting (always increment on verify call)
     pv.attempts += 1
+
     if pv.code != payload.code:
+        # lock after N attempts (including this one)
+        if pv.attempts >= MAX_SMS_VERIFY_ATTEMPTS:
+            pv.locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
         db.commit()
         raise HTTPException(status_code=400, detail="invalid_code")
 
@@ -80,7 +106,10 @@ def verify_sms(payload: AuthVerifySmsIn, db: Session = Depends(get_db)) -> AuthT
 
 
 @router.post("/verify_telegram_contact")
-def verify_telegram_contact(payload: AuthVerifyTelegramContactIn, db: Session = Depends(get_db)) -> AuthTokenOut:
+def verify_telegram_contact(
+    payload: AuthVerifyTelegramContactIn,
+    db: Session = Depends(get_db),
+) -> AuthTokenOut:
     phone_e164 = normalize_phone_to_e164(payload.phone)
     phone_from_tg = normalize_phone_to_e164(payload.phone_from_telegram)
     if phone_e164 != phone_from_tg:

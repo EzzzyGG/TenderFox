@@ -23,4 +23,7 @@ class PhoneVerification(Base):
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    # Anti-bruteforce: lock verification attempts for this record
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
