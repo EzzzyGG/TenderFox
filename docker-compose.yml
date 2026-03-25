@@ -11,31 +11,30 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
 
   bot:
     build: .
     container_name: tenderfox-bot
-    command: ["python", "-m", "app.integrations.telegram.bot"]
     env_file:
       - .env
+    command: python -m app.integrations.telegram.bot
     depends_on:
-      api:
+      postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   scheduler:
     build: .
     container_name: tenderfox-scheduler
-    command: ["python", "-m", "app.services.scheduler"]
     env_file:
       - .env
+    command: python -m app.services.scheduler
     depends_on:
-      api:
+      postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   web:
     image: nginx:1.27-alpine
@@ -45,20 +44,19 @@ services:
     volumes:
       - ./web:/usr/share/nginx/html:ro
       - ./web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine
     container_name: tenderfox-postgres
-    environment:
-      POSTGRES_USER: tenderfox
-      POSTGRES_PASSWORD: tenderfox
-      POSTGRES_DB: tenderfox
-    ports:
-      - "5432:5432"
+    env_file:
+      - .env
     volumes:
-      - tenderfox_pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tenderfox -d tenderfox"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -66,8 +64,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: tenderfox-redis
-    ports:
-      - "6379:6379"
 
 volumes:
-  tenderfox_pgdata:
+  postgres_data:

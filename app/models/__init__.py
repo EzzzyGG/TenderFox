@@ -1,17 +1,11 @@
-from app.models.delivery import Delivery
-from app.models.subscription import Subscription
-from app.models.tender import Tender
-from app.models.user import User
-from app.models.phone_verification import PhoneVerification
-from app.models.telegram_link import TelegramLink
-from app.models.telegram_pending_phone import TelegramPendingPhone
+from app.models.delivery import Delivery as Delivery
+from app.models.subscription import Subscription as Subscription
+from app.models.tender import Tender as Tender
+from app.models.user import User as User
 
 __all__ = [
-    "Tender",
-    "Subscription",
     "Delivery",
+    "Subscription",
+    "Tender",
     "User",
-    "PhoneVerification",
-    "TelegramLink",
-    "TelegramPendingPhone",
 ]
