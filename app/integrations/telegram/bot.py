@@ -10,9 +10,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from app.core.config import settings
 from app.db.session import SessionLocal
-from app.models.telegram_link import TelegramLink
 from app.models.telegram_pending_phone import TelegramPendingPhone
 from app.utils.phone import normalize_phone_e164
 
@@ -60,7 +58,6 @@ async def verify_phone(msg: Message) -> None:
     expires_at = now + timedelta(minutes=VERIFY_TTL_MINUTES)
 
     with SessionLocal() as db:
-        # upsert pending
         existing = (
             db.query(TelegramPendingPhone)
             .filter(TelegramPendingPhone.phone_e164 == phone)
@@ -98,7 +95,6 @@ async def on_contact(msg: Message) -> None:
         await msg.answer("Не смог распознать номер из контакта")
         return
 
-    # call API to verify linking
     url = f"{API_BASE_URL}/auth/verify/telegram_contact"
     payload = {"phone_e164": phone, "telegram_user_id": msg.from_user.id, "chat_id": msg.chat.id}
 

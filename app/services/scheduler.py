@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import httpx
 from sqlalchemy import select
@@ -125,7 +125,6 @@ async def run_once() -> None:
                 for raw in items:
                     norm = normalize_tender(raw)
 
-                    # upsert tender (minimal)
                     tender = db.execute(
                         select(Tender).where(
                             Tender.source == norm.source,
