@@ -15,7 +15,7 @@ from app.models.subscription import Subscription
 from app.models.tender import Tender
 from app.models.telegram_link import TelegramLink
 from app.sources.gosplan.client import GosplanClient
-from app.sources.gosplan.normalize import normalize_tender
+from app.sources.gosplan.normalize import normalize_purchase
 
 log = logging.getLogger(__name__)
 
@@ -94,81 +94,83 @@ def _mark_delivered(db: Session, subscription_id: int, tender_id: int) -> None:
 
 
 async def run_once() -> None:
-    async with GosplanClient() as client:
-        with SessionLocal() as db:
-            subs = (
-                db.execute(select(Subscription).where(Subscription.is_active.is_(True)))
-                .scalars()
-                .all()
+    client = GosplanClient()
+    with SessionLocal() as db:
+        subs = (
+            db.execute(select(Subscription).where(Subscription.is_active.is_(True)))
+            .scalars()
+            .all()
+        )
+
+        sent_messages = 0
+
+        for sub in subs:
+            if sent_messages >= MAX_MESSAGES_PER_CYCLE:
+                log.warning("Reached MAX_MESSAGES_PER_CYCLE=%s", MAX_MESSAGES_PER_CYCLE)
+                break
+
+            if sub.user_id is None:
+                continue
+
+            chat_id = _resolve_chat_id(db, sub.user_id)
+            if not chat_id:
+                continue
+
+            data = await client.list_purchases(
+                keyword=sub.keyword,
+                region=int(sub.region) if sub.region and sub.region.isdigit() else None,
+                limit=LIMIT_PER_SUB,
+                stage=STAGE,
             )
+            items = data.get("items") or data.get("results") or data.get("data") or []
 
-            sent_messages = 0
+            for raw in items:
+                norm = normalize_purchase(raw)
 
-            for sub in subs:
-                if sent_messages >= MAX_MESSAGES_PER_CYCLE:
-                    log.warning("Reached MAX_MESSAGES_PER_CYCLE=%s", MAX_MESSAGES_PER_CYCLE)
-                    break
+                tender = db.execute(
+                    select(Tender).where(
+                        Tender.source == norm.source,
+                        Tender.source_id == norm.source_id,
+                    )
+                ).scalar_one_or_none()
 
-                if sub.user_id is None:
+                if tender is None:
+                    tender = Tender(
+                        source=norm.source,
+                        source_id=norm.source_id,
+                        title=norm.title,
+                        url=norm.url,
+                        region=norm.region,
+                        price=norm.price,
+                        currency=norm.currency,
+                        deadline_at=norm.deadline_at,
+                        published_at=norm.published_at,
+                        raw_json=norm.raw,
+                    )
+                    db.add(tender)
+                    db.flush()
+                else:
+                    tender.title = norm.title
+                    tender.url = norm.url
+                    tender.region = norm.region
+                    tender.price = norm.price
+                    tender.currency = norm.currency
+                    tender.deadline_at = norm.deadline_at
+                    tender.published_at = norm.published_at
+                    tender.raw_json = norm.raw
+
+                if _already_delivered(db, sub.id, tender.id):
                     continue
 
-                chat_id = _resolve_chat_id(db, sub.user_id)
-                if not chat_id:
-                    continue
+                text = f"{tender.title}\n{tender.url or ''}".strip()
+                await _send_telegram_message(chat_id, text)
+                _mark_delivered(db, sub.id, tender.id)
+                sent_messages += 1
 
-                items = await client.search(
-                    keyword=sub.keyword,
-                    region=sub.region,
-                    limit=LIMIT_PER_SUB,
-                )
+                if SLEEP_BETWEEN_MESSAGES_MS > 0:
+                    await asyncio.sleep(SLEEP_BETWEEN_MESSAGES_MS / 1000.0)
 
-                for raw in items:
-                    norm = normalize_tender(raw)
-
-                    tender = db.execute(
-                        select(Tender).where(
-                            Tender.source == norm.source,
-                            Tender.source_id == norm.source_id,
-                        )
-                    ).scalar_one_or_none()
-
-                    if tender is None:
-                        tender = Tender(
-                            source=norm.source,
-                            source_id=norm.source_id,
-                            title=norm.title,
-                            url=norm.url,
-                            region=norm.region,
-                            price=norm.price,
-                            currency=norm.currency,
-                            deadline_at=norm.deadline_at,
-                            published_at=norm.published_at,
-                            raw_json=norm.raw_json,
-                        )
-                        db.add(tender)
-                        db.flush()
-                    else:
-                        tender.title = norm.title
-                        tender.url = norm.url
-                        tender.region = norm.region
-                        tender.price = norm.price
-                        tender.currency = norm.currency
-                        tender.deadline_at = norm.deadline_at
-                        tender.published_at = norm.published_at
-                        tender.raw_json = norm.raw_json
-
-                    if _already_delivered(db, sub.id, tender.id):
-                        continue
-
-                    text = f"{tender.title}\n{tender.url or ''}".strip()
-                    await _send_telegram_message(chat_id, text)
-                    _mark_delivered(db, sub.id, tender.id)
-                    sent_messages += 1
-
-                    if SLEEP_BETWEEN_MESSAGES_MS > 0:
-                        await asyncio.sleep(SLEEP_BETWEEN_MESSAGES_MS / 1000.0)
-
-            db.commit()
+        db.commit()
 
 
 async def main() -> None:
