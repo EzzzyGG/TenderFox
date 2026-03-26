@@ -31,4 +31,6 @@ class SubscriptionOut(BaseModel):
     exclude_keywords: str | None = None
     days_back: int | None = None
 
-    active: bool
+    active: bool = Field(validation_alias="is_active")
+
+    model_config = {"from_attributes": True}

@@ -25,7 +25,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/start")
 def start(payload: AuthStartIn, db: Session = Depends(get_db)) -> AuthStartOut:
-    phone_e164 = normalize_phone_to_e164(payload.phone)
+    try:
+        phone_e164 = normalize_phone_to_e164(payload.phone)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     # SMS stub: generate deterministic short code for dev.
     # Replace with random + provider later.
@@ -43,7 +46,10 @@ def start(payload: AuthStartIn, db: Session = Depends(get_db)) -> AuthStartOut:
 
 @router.post("/verify_sms")
 def verify_sms(payload: AuthVerifySmsIn, db: Session = Depends(get_db)) -> AuthTokenOut:
-    phone_e164 = normalize_phone_to_e164(payload.phone)
+    try:
+        phone_e164 = normalize_phone_to_e164(payload.phone)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     pv = db.execute(
         select(PhoneVerification)
@@ -57,6 +63,8 @@ def verify_sms(payload: AuthVerifySmsIn, db: Session = Depends(get_db)) -> AuthT
         raise HTTPException(status_code=400, detail="verification_not_found")
     if pv.expires_at < datetime.now(tz=timezone.utc):
         raise HTTPException(status_code=400, detail="verification_expired")
+    if pv.attempts >= 5:
+        raise HTTPException(status_code=429, detail="too_many_attempts")
 
     pv.attempts += 1
     if pv.code != payload.code:
@@ -81,8 +89,11 @@ def verify_sms(payload: AuthVerifySmsIn, db: Session = Depends(get_db)) -> AuthT
 
 @router.post("/verify_telegram_contact")
 def verify_telegram_contact(payload: AuthVerifyTelegramContactIn, db: Session = Depends(get_db)) -> AuthTokenOut:
-    phone_e164 = normalize_phone_to_e164(payload.phone)
-    phone_from_tg = normalize_phone_to_e164(payload.phone_from_telegram)
+    try:
+        phone_e164 = normalize_phone_to_e164(payload.phone)
+        phone_from_tg = normalize_phone_to_e164(payload.phone_from_telegram)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     if phone_e164 != phone_from_tg:
         raise HTTPException(status_code=400, detail="phone_mismatch")
 
